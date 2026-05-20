@@ -1,16 +1,22 @@
 cleanup() {
     echo "Cleaning up..."
+    pkill play
     pkill -f royalwhitenoise.sh
     exit
 }
+#!/usr/bin/env bash
+# Requires sox to be installed: sudo apt install sox libsox-fmt-all
 
-#with delta waves
-ffplay -af "loudnorm=I=-16:TP=-1.5:LRA=11,bs2b=fcut=650:feed=9.5,volume=1" -f lavfi -i "anoisesrc=d=3600:c=white:r=44100,lowpass=f=150,tremolo=f=1.5:d=0.2,volume=0.8[w];anoisesrc=d=3600:c=pink:r=44100,lowpass=f=250,volume=0.5[p];anoisesrc=d=3600:c=brown:r=44100,lowpass=f=100,volume=1.0[b];sine=f=60:d=3600:r=44100[dl];sine=f=62.5:d=3600:r=44100[dr];[dl][dr]amerge=inputs=2,volume=0.5[delta];sine=f=26:r=44100,tremolo=f=1.5:d=0.7[purr1];sine=f=38:r=44100,tremolo=f=1.6:d=0.6[purr2];[purr1][purr2]amix=inputs=2,lowpass=f=80,volume=2.5[cat];[w][p][b][delta][cat]amix=inputs=5:weights='0.3 0.6 1.0 0.8 1.2',highpass=f=20,volume=1.5" -nodisp > /dev/null 2>&1 &
+# Each "input" starts with '|' so SoX treats it as a command/generator
+while true; do
+  play -n -c 2 synth 10:00 \
+    brownnoise pinknoise whitenoise \
+    lowpass -1 250 \
+    vol 1 \
+    remix 1 2
+done >/dev/null 2>&1 &
 
-#without delta waves
-#-f lavfi -i "anoisesrc=d=3600:c=white:r=44100,lowpass=f=150,tremolo=f=1.5:d=0.2,volume=0.8[w];anoisesrc=d=3600:c=pink:r=44100,lowpass=f=250,volume=0.5[p];anoisesrc=d=3600:c=brown:r=44100,lowpass=f=100,volume=1.0[b];sine=f=26:r=44100,tremolo=f=1.5:d=0.7[purr1];sine=f=38:r=44100,tremolo=f=1.6:d=0.6[purr2];[purr1][purr2]amix=inputs=2,lowpass=f=80,volume=3.0[cat];[w][p][b][cat]amix=inputs=4:weights='0.3 0.6 1.0 1.5',highpass=f=20,volume=1.5" -nodisp > /dev/null 2>&1 &
-
-if pgrep ffplay > /dev/null; then
+if pgrep play > /dev/null; then
 
 function start_spinner {
     set +m
