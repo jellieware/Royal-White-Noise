@@ -1,38 +1,14 @@
-#!/bin/bash
-trap "exit 1" INT
-# Base noise sources
-BROWN="anoisesrc=color=brown"
-PINK="anoisesrc=color=pink"
-WHITE="anoisesrc=color=white"
+cleanup() {
+    echo "Cleaning up..."
+    pkill -f royalwhitenoise.sh
+    exit
+}
 
-# Filtered noise sources
-INFRA="anoisesrc=color=brown,lowpass=f=20"
-ULTRA="anoisesrc=color=pink,highpass=f=15000"
-GREY="anoisesrc=color=white,bandpass=f=1000:width_type=h:w=3000"
+#with delta waves
+ffplay -af "loudnorm=I=-16:TP=-1.5:LRA=11,bs2b=fcut=650:feed=9.5,volume=1" -f lavfi -i "anoisesrc=d=3600:c=white:r=44100,lowpass=f=150,tremolo=f=1.5:d=0.2,volume=0.8[w];anoisesrc=d=3600:c=pink:r=44100,lowpass=f=250,volume=0.5[p];anoisesrc=d=3600:c=brown:r=44100,lowpass=f=100,volume=1.0[b];sine=f=60:d=3600:r=44100[dl];sine=f=62.5:d=3600:r=44100[dr];[dl][dr]amerge=inputs=2,volume=0.5[delta];sine=f=26:r=44100,tremolo=f=1.5:d=0.7[purr1];sine=f=38:r=44100,tremolo=f=1.6:d=0.6[purr2];[purr1][purr2]amix=inputs=2,lowpass=f=80,volume=2.5[cat];[w][p][b][delta][cat]amix=inputs=5:weights='0.3 0.6 1.0 0.8 1.2',highpass=f=20,volume=1.5" -nodisp > /dev/null 2>&1 &
 
-# 2 seconds per ear cycle (0.25 Hz LFO) for the background noise
-FREQ="0.25"
-L_NOISE_MOD="volume='0.4*sin(2*PI*$FREQ*t)+0.6':eval=frame"
-R_NOISE_MOD="volume='0.4*cos(2*PI*$FREQ*t)+0.6':eval=frame"
-
-# SEPARATE DELTA BEATS: Pure sine tones generated entirely outside the noise mix
-# Left ear: 100 Hz tone
-# Right ear: 101.5 Hz tone (Creates a clean, independent 1.5 Hz Delta brainwave beat)
-L_TONE="sine=frequency=100:duration=3600,volume=0.3"
-R_TONE="sine=frequency=101.5:duration=3600,volume=0.3"
-
-# Process: Mix noises -> Split stereo -> Apply slow 2s LFO -> Mix with independent Delta Tones
-ffplay -af "bs2b=fcut=650:feed=9.5" -f lavfi -i "
-$BROWN[a]; $PINK[b]; $WHITE[c]; $GREY[d]; $INFRA[e]; $ULTRA[f];
-[a][b][c][d][e][f]amix=inputs=6:duration=longest[mono_noise];
-[mono_noise]asplit=outputs=2[m_noise_l][m_noise_r];
-[m_noise_l]$L_NOISE_MOD[noise_left];
-[m_noise_r]$R_NOISE_MOD[noise_right];
-$L_TONE[tone_left];
-$R_TONE[tone_right];
-[noise_left][tone_left]amix=inputs=2:duration=longest[final_left];
-[noise_right][tone_right]amix=inputs=2:duration=longest[final_right];
-[final_left][final_right]amerge=inputs=2" > /dev/null 2>&1 &
+#without delta waves
+#-f lavfi -i "anoisesrc=d=3600:c=white:r=44100,lowpass=f=150,tremolo=f=1.5:d=0.2,volume=0.8[w];anoisesrc=d=3600:c=pink:r=44100,lowpass=f=250,volume=0.5[p];anoisesrc=d=3600:c=brown:r=44100,lowpass=f=100,volume=1.0[b];sine=f=26:r=44100,tremolo=f=1.5:d=0.7[purr1];sine=f=38:r=44100,tremolo=f=1.6:d=0.6[purr2];[purr1][purr2]amix=inputs=2,lowpass=f=80,volume=3.0[cat];[w][p][b][cat]amix=inputs=4:weights='0.3 0.6 1.0 1.5',highpass=f=20,volume=1.5" -nodisp > /dev/null 2>&1 &
 
 if pgrep ffplay > /dev/null; then
 
