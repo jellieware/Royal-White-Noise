@@ -9,7 +9,7 @@ cleanup() {
 
 # Each "input" starts with '|' so SoX treats it as a command/generator
 while true; do
-  play -n -c 2 synth 10:00 \
+  play --buffer 32768 -n -c 2 synth 10:00 \
     brownnoise pinknoise whitenoise \
     lowpass -1 250 \
     vol 1 \
